@@ -11,7 +11,7 @@ sem_t print;
 const int Capacity = 6;
 int boarders = 0;
 int unboarders = 0;
-const int waiting_passengers = 24; 
+int waiting_passengers = 22; 
 
 void load() {
   sem_wait(&print);
@@ -45,6 +45,8 @@ void unboard(int identity) {
 
 void* RollerCoaster(void* args) {
   int ride_count = 0;
+
+
   while (true) {
     load();
     sem_post(&boardQueue);
@@ -53,14 +55,17 @@ void* RollerCoaster(void* args) {
     ride_count++;
     sem_wait(&print);
     cout<<"Ride "<<ride_count<<" Finished."<<endl;
+    waiting_passengers -=Capacity;
     sem_post(&print);
     unload();
-
     for(int i = 0; i<Capacity; i++)
     sem_post(&unboardQueue);
     sem_wait(&allAshore);
     boarders = 0;
     unboarders = 0;
+
+    if(waiting_passengers<Capacity)
+    break;
   }
 }
 
