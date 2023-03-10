@@ -1,6 +1,7 @@
 #include <bits/stdc++.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <unistd.h>
 #define ITERATIONS 10
 
 sem_t check, rupdate, rwsync, print;
