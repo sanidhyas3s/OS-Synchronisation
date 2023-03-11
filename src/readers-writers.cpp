@@ -1,62 +1,62 @@
-#include <bits/stdc++.h>
+#include "semaphore.cpp"
 #include <pthread.h>
-#include <semaphore.h>
+#include <bits/stdc++.h>
 #include <unistd.h>
 #define ITERATIONS 10
 
-sem_t check, rupdate, rwsync, print;
+Semaphore check = Semaphore(1);
+Semaphore rupdate = Semaphore(1);
+Semaphore rwsync = Semaphore(1);
+Semaphore print = Semaphore(1);
+
 int rcount = 0;
 
 int* shared = (int*)malloc(sizeof(int));
 
 void* Reader(void* args)
 {
-    sem_wait(&print);
+    print.wait();
     int identity = *(int*)args;
     printf("Reader %d ready.\n",identity+1);
-    sem_post(&print);
-    sem_wait(&rwsync);
-    sem_wait(&rupdate);
+    print.release();
+    rwsync.wait();
+    rupdate.wait();
     rcount++;
-    if(rcount==1) sem_wait(&check);
-    sem_post(&rupdate);
-    sem_post(&rwsync);
+    if(rcount==1) check.wait();
+    rupdate.release();
+    rwsync.release();
     //---READ DATA---
     sleep(1);
     printf("Value read from the memory by Reader %d: %d\n",identity+1,*shared);
     //---------------
-    sem_wait(&rupdate);
+    rupdate.wait();
     rcount--;
-    sem_post(&rupdate);
-    if(rcount==0) sem_post(&check);
+    rupdate.release();
+    if(rcount==0) check.release();
 
     return NULL;
 }
 
 void* Writer(void* args)
 {
-    sem_wait(&print);
+    print.wait();
     int identity = *(int*)args;
     printf("Writer %d ready.\n",identity+1);
-    sem_post(&print);
-    sem_wait(&rwsync);
-    sem_wait(&check);
+    print.release();
+    rwsync.wait();
+    check.wait();
     //---WRITE DATA---
     sleep(1);
     *shared = rand()%100;
     printf("Value written to the memory by Writer %d: %d\n",identity+1,*shared);
     //----------------
-    sem_post(&check);
-    sem_post(&rwsync);
+    check.release();
+    rwsync.release();
     return NULL;  
 }
 
 int main()
 {
-    sem_init(&check,0,1);
-    sem_init(&rupdate,0,1);
-    sem_init(&rwsync,0,1);
-    sem_init(&print,0,1);
     pthread_t read,write;
     for(int i=0;i<ITERATIONS;i++)
     {
