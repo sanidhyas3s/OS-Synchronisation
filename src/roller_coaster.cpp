@@ -5,8 +5,13 @@
 
 using namespace std;
 
-sem_t allAboard, allAshore, boardQueue, unboardQueue, mutex1, mutex2;
-sem_t print;
+Semaphore allAboard = Semaphore(0);
+Semaphore allAshore = Semaphore(0);
+Semaphore boardQueue = Semaphore(0);
+Semaphore unboardQueue = Semaphore(0);
+Semaphore mutex1 = Semaphore(1);
+Semaphore mutex2 = Semaphore(1);
+Semaphore print = Semaphore(1);
 
 const int Capacity = 2;
 int boarders = 0;
@@ -15,155 +20,140 @@ int waiting_passengers = 7;
 
 void load()
 {
-  sem_wait(&print);
-  sleep(1);
-  cout << "Passengers can now board the Roller Coaster." << endl;
-  sem_signal(&print);
+    print.wait();
+    sleep(1);
+    cout << "Passengers can now board the Roller Coaster." << endl;
+    print.release();
 }
 
 void run()
 {
-  sem_wait(&print);
-  cout << "Roller Coaster is running." << endl;
-  sleep(10);
-  sem_signal(&print);
+    print.wait();
+    cout << "Roller Coaster is running." << endl;
+    sleep(10);
+    print.release();
 }
 
 void unload()
 {
-  sem_wait(&print);
-  cout << "Passengers can now unboard the Roller Coaster." << endl;
-  sem_signal(&print);
+    print.wait();
+    cout << "Passengers can now unboard the Roller Coaster." << endl;
+    print.release();
 }
 
 void board(int identity)
 {
-  sem_wait(&print);
-  sleep(1);
-  cout << "Passenger " << identity << " is boarding the Roller Coaster." << endl;
-  sem_signal(&print);
+    print.wait();
+    sleep(1);
+    cout << "Passenger " << identity << " is boarding the Roller Coaster." << endl;
+    print.release();
 }
 
 void unboard(int identity)
 {
-  sem_wait(&print);
-  sleep(1);
-  cout << "Passenger " << identity << " is unboarding the Roller Coaster." << endl;
-  sem_signal(&print);
+    print.wait();
+    sleep(1);
+    cout << "Passenger " << identity << " is unboarding the Roller Coaster." << endl;
+    print.release();
 }
 
 void *RollerCoaster(void *args)
 {
-  int ride_count = 0;
+    int ride_count = 0;
 
-  while (true)
-  {
-    load();
-    sem_signal(&boardQueue);
-    sem_wait(&allAboard);
-    run();
-    ride_count++;
-    sem_wait(&print);
-    cout << "Ride " << ride_count << " Finished." << endl;
-    sleep(1);
-    sem_signal(&print);
-    waiting_passengers -= Capacity;
-    unload();
-    for (int i = 0; i < Capacity; i++)
-      sem_signal(&unboardQueue);
-    if (waiting_passengers < Capacity)
+    while (true)
     {
-      sem_wait(&allAshore);
-      if (waiting_passengers > 0)
-      {
-        cout << waiting_passengers << " Passangers are waiting for new Passengers to arrive." << endl;
-        sem_wait(&boardQueue);
-      }
+        load();
+        boardQueue.release();
+        allAboard.wait();
+        run();
+        ride_count++;
+        print.wait();
+        cout << "Ride " << ride_count << " Finished." << endl;
+        sleep(1);
+        print.release();
+        waiting_passengers -= Capacity;
+        unload();
+        for (int i = 0; i < Capacity; i++)
+            unboardQueue.release();
+        if (waiting_passengers < Capacity)
+        {
+            allAshore.wait();
+            if (waiting_passengers > 0)
+            {
+                cout << waiting_passengers << " Passangers are waiting for new Passengers to arrive." << endl;
+                boardQueue.wait();
+            }
 
-      else
-        break;
+            else
+                break;
+        }
+        allAshore.wait();
+        boarders = 0;
+        unboarders = 0;
     }
-    sem_wait(&allAshore);
-    boarders = 0;
-    unboarders = 0;
-  }
 }
 
 void *Passenger(void *args)
 {
-  int identity = *(int *)args;
-  free(args);
+    int identity = *(int *)args;
+    free(args);
 
-  sem_wait(&print);
-  sleep(2);
-  cout << "Passenger " << identity << " is waiting to board the Roller Coaster." << endl;
-  sem_signal(&print);
+    print.wait();
+    sleep(2);
+    cout << "Passenger " << identity << " is waiting to board the Roller Coaster." << endl;
+    print.release();
 
-  while (true)
-  {
-    sem_wait(&mutex1);
-    sem_wait(&boardQueue);
-    if (boarders < Capacity)
+    while (true)
     {
-      board(identity);
-      boarders++;
-      if (boarders == Capacity)
-      {
-        sem_signal(&allAboard);
-      }
-      else
-        sem_signal(&boardQueue);
-      sem_signal(&mutex1);
-      sem_wait(&unboardQueue);
-      sem_wait(&mutex2);
-      unboard(identity);
-      unboarders++;
-      sem_signal(&mutex2);
-      if (unboarders == Capacity)
-        sem_signal(&allAshore);
-      break;
+        mutex1.wait();
+        boardQueue.wait();
+        if (boarders < Capacity)
+        {
+            board(identity);
+            boarders++;
+            if (boarders == Capacity)
+            {
+                allAboard.release();
+            }
+            else
+                boardQueue.release();
+            mutex1.release();
+            unboardQueue.wait();
+            mutex2.wait();
+            unboard(identity);
+            unboarders++;
+            mutex2.release();
+            if (unboarders == Capacity)
+                allAshore.release();
+            break;
+        }
+        mutex1.release();
     }
-    sem_signal(&mutex1);
-  }
 
-  pthread_exit(NULL);
+    pthread_exit(NULL);
 }
 
 int main()
 {
-  sem_init(&boardQueue, 0, 0);
-  sem_init(&unboardQueue, 0, 0);
-  sem_init(&allAboard, 0, 0);
-  sem_init(&allAshore, 0, 0);
-  sem_init(&mutex1, 0, 1);
-  sem_init(&mutex2, 0, 1);
-  sem_init(&print, 0, 1);
+    pthread_t Roller_Coaster_thread;
+    pthread_t Passenger_threads[waiting_passengers];
 
-  pthread_t Roller_Coaster_thread;
-  pthread_t Passenger_threads[waiting_passengers];
+    pthread_create(&Roller_Coaster_thread, NULL, RollerCoaster, NULL);
 
-  pthread_create(&Roller_Coaster_thread, NULL, RollerCoaster, NULL);
+    for (int i = 0; i < waiting_passengers; i++)
+    {
+        int *identity = (int *)malloc(sizeof(int));
+        *identity = i + 1;
+        pthread_create(&Passenger_threads[i], NULL, Passenger, identity);
+    }
 
-  for (int i = 0; i < waiting_passengers; i++)
-  {
-    int *identity = (int *)malloc(sizeof(int));
-    *identity = i + 1;
-    pthread_create(&Passenger_threads[i], NULL, Passenger, identity);
-  }
+    for (int i = 0; i < waiting_passengers; i++)
+    {
+        pthread_join(Passenger_threads[i], NULL);
+    }
 
-  for (int i = 0; i < waiting_passengers; i++)
-  {
-    pthread_join(Passenger_threads[i], NULL);
-  }
+    pthread_join(Roller_Coaster_thread, NULL);
 
-  pthread_join(Roller_Coaster_thread, NULL);
-
-  sem_destroy(&boardQueue);
-  sem_destroy(&unboardQueue);
-  sem_destroy(&allAboard);
-  sem_destroy(&allAshore);
-  sem_destroy(&mutex1);
-  sem_destroy(&mutex2);
-
-  return 0;
+    return 0;
 }
