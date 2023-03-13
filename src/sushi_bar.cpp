@@ -34,7 +34,7 @@ void* sushi_bar(void* args){
         mutex.release();
     }
 
-    sleep(7);
+    sleep(6);
 
     mutex1.wait();
     eating--;

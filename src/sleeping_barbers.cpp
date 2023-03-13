@@ -5,7 +5,7 @@
 
 using namespace std;
 
-#define MAX_CUSTOMERS 50
+#define MAX_CUSTOMERS 40
 #define NO_OF_BARBERS 5
 #define WAITING_CHAIRS 10
 
