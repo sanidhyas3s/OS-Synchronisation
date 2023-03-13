@@ -28,7 +28,7 @@ void Semaphore::wait()
     {
         waiting.push(pthread_self());
         // while(this->popped.find(pthread_self())==this->popped.end());
-        while(this->popped!=pthread_self());
+        while(!pthread_equal(this->popped, pthread_self()));
     }
 }
 

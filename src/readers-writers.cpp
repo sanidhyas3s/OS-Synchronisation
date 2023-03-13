@@ -57,18 +57,18 @@ void* Writer(void* args)
 
 int main()
 {
-    pthread_t read,write;
+    pthread_t read[ITERATIONS],write[ITERATIONS];
     for(int i=0;i<ITERATIONS;i++)
     {
         int* identity = (int*)malloc(sizeof(int));
         *identity = i;
-        pthread_create(&read,NULL,Reader,identity);
-        pthread_create(&write,NULL,Writer,identity);
+        pthread_create(&read[i],NULL,Reader,identity);
+        pthread_create(&write[i],NULL,Writer,identity);
     }
     for(int i=0;i<ITERATIONS;i++)
     {
-        pthread_join(read,NULL);
-        pthread_join(write,NULL);
+        pthread_join(read[i],NULL);
+        pthread_join(write[i],NULL);
     }
     return 1;
 }
