@@ -1,5 +1,5 @@
 #include <bits/stdc++.h> 
-#include "Brutel5.cpp"
+#include "semaphore.cpp"
 #include <pthread.h>
 #include <unistd.h>
 
