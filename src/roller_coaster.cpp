@@ -22,14 +22,14 @@ void load()
 {
     print.wait();
     sleep(1);
-    cout << "Passengers can now board the Roller Coaster." << endl;
+    printf("Passengers can now board the Roller Coaster.\n");
     print.release();
 }
 
 void run()
 {
     print.wait();
-    cout << "Roller Coaster is running." << endl;
+    printf("Roller Coaster is running.\n");
     sleep(10);
     print.release();
 }
@@ -37,7 +37,7 @@ void run()
 void unload()
 {
     print.wait();
-    cout << "Passengers can now unboard the Roller Coaster." << endl;
+    printf("Passengers can now unboard the Roller Coaster.\n");
     print.release();
 }
 
@@ -45,7 +45,7 @@ void board(int identity)
 {
     print.wait();
     sleep(1);
-    cout << "Passenger " << identity << " is boarding the Roller Coaster." << endl;
+    printf("Passenger %d is boarding the Roller Coaster.\n", identity);
     print.release();
 }
 
@@ -53,7 +53,7 @@ void unboard(int identity)
 {
     print.wait();
     sleep(1);
-    cout << "Passenger " << identity << " is unboarding the Roller Coaster." << endl;
+    printf("Passenger %d is unboarding the Roller Coaster.\n", identity);
     print.release();
 }
 
@@ -69,7 +69,7 @@ void *RollerCoaster(void *args)
         run();
         ride_count++;
         print.wait();
-        cout << "Ride " << ride_count << " Finished." << endl;
+        printf("Ride %d Finished.\n", ride_count);
         sleep(1);
         print.release();
         waiting_passengers -= Capacity;
@@ -81,7 +81,7 @@ void *RollerCoaster(void *args)
             allAshore.wait();
             if (waiting_passengers > 0)
             {
-                cout << waiting_passengers << " Passangers are waiting for new Passengers to arrive." << endl;
+                printf("%d Passangers are waiting for new Passengers to arrive.\n", waiting_passengers);
                 boardQueue.wait();
             }
 
@@ -101,7 +101,7 @@ void *Passenger(void *args)
 
     print.wait();
     sleep(2);
-    cout << "Passenger " << identity << " is waiting to board the Roller Coaster." << endl;
+    printf("Passenger %d is waiting to board the Roller Coaster.\n", identity);
     print.release();
 
     while (true)
