@@ -1,8 +1,10 @@
-#include "semaphore.cpp"
-#include <pthread.h>
 #include <bits/stdc++.h>
 #include <unistd.h>
-#define ITERATIONS 10
+#include <pthread.h>
+
+#include "semaphore.cpp"
+
+#define ITERATIONS 15
 
 Semaphore check = Semaphore(1);
 Semaphore rupdate = Semaphore(1);
@@ -11,12 +13,13 @@ Semaphore print = Semaphore(1);
 
 int rcount = 0;
 
-int* shared = (int*)malloc(sizeof(int));
+int* shared = (int*)malloc(sizeof(int));f
 
 void* Reader(void* args)
 {
-    print.wait();
     int identity = *(int*)args;
+    sleep(identity%5);
+    print.wait();
     printf("Reader %d ready.\n",identity+1);
     print.release();
     rwsync.wait();
@@ -39,8 +42,9 @@ void* Reader(void* args)
 
 void* Writer(void* args)
 {
-    print.wait();
     int identity = *(int*)args;
+    sleep(identity%5);
+    print.wait();
     printf("Writer %d ready.\n",identity+1);
     print.release();
     rwsync.wait();
