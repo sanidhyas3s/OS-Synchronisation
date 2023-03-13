@@ -1,8 +1,10 @@
 #include <bits/stdc++.h> 
-#include "semaphore.cpp"
-#include <pthread.h>
 #include <unistd.h>
-#define NO_OF_CUSTOMERS 18
+#include <pthread.h>
+
+#include "semaphore.cpp"
+
+#define NO_OF_CUSTOMERS 16
 
 int eating = 0, waiting = 0; 
 Semaphore block = Semaphore(0);
@@ -21,7 +23,6 @@ void* sushi_bar(void* args){
         block.wait();
         waiting--;
     }
-
     eating++;
     printf("Eating customer...%d\n", *(int*)args+1);
     if(eating == 5){
@@ -34,7 +35,7 @@ void* sushi_bar(void* args){
         mutex.release();
     }
 
-    sleep(6);
+    sleep(6); // Eating time
 
     mutex1.wait();
     eating--;
@@ -44,11 +45,8 @@ void* sushi_bar(void* args){
     }
     if(waiting && !(must_wait)){
         block.release();
-        mutex1.release();
     }
-    else{
-        mutex1.release();
-    }
+    mutex1.release();
     return NULL;
 }
 
