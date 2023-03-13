@@ -1,5 +1,5 @@
 #include <bits/stdc++.h> 
-#include "Brutel5.cpp"
+#include "semaphore.cpp"
 #include <pthread.h>
 #include <unistd.h>
 
@@ -10,54 +10,52 @@ using namespace std;
 #define WAITING_CHAIRS 10
 
 int waiting_customers = 0;
-sem_t wait, block;
-// semaphores wait,block;
+Semaphore block = Semaphore(1);
+Semaphore mutex1 = Semaphore(1);
 
 queue<int>customers;
 void* customer(void* args){
 	int identity = *(int*)args;
-	sem_wait(&mutex);
+	mutex1.wait();
 	sleep(1);
 	if (waiting_customers < WAITING_CHAIRS){
 		waiting_customers++;
-		customers.push(id);		
-		sem_signal(&mutex);		
-		cout<<"customer "<<identity+1<<" entered waiting area\n";
+		customers.push(identity+1);		
+		mutex1.release();
+		printf("customer %d entered waiting area\n", identity+1);		
 	} 
 	else{				
-		sem_signal(&mutex);
-		cout<<"customer "<<identity+1<<" left without hair cut\n";
+		mutex1.release();
+		printf("customer %d left without hair cut\n", identity+1);
 	}
-	
+	return NULL;
 }
 bool barbers_state[NO_OF_BARBERS];
 void* barber(void* args){
 	int identity = *(int*)args;
-	sem_wait(&block);
+	block.wait();
 	sleep(1);
 	if (waiting_customers == 0){		
-		barbers_state[id] = 1;
-		sem_signal(&block);
-		cout<<"Barber "<<identity+1<<" going to sleep\n";
+		barbers_state[identity+1] = 1;
+		block.release();
+		printf("Barber %d going to sleep\n", identity+1);
 	}
 	else{		
 		waiting_customers--;
 		int customer_id = customers.front();
 		customers.pop();
-		sem_signal(&block);
-		if (barbers_state[id])
-			cout<<"Barber "<<identity+1<<" wake up from sleep\n";
+		block.release();
+		if (barbers_state[identity+1])
+			printf("Barber %d wake up from sleep\n", identity+1);
 		barbers_state[identity+1] = 0;		
-		sleep(2);
+		sleep(3);
 		cout<<"Barber "<<identity+1<<" is going to cut the hairs of customer "<<customer_id<<'\n';
 		cout<<"customer "<<customer_id<<" is leaving after his hair cut\n";		
 	}
+	return NULL;
 }
 
 int main(){
-
-	sem_init(&block, 0, 1);
-	sem_init(&mutex, 0, 1);
 
 	pthread_t barbers[NO_OF_BARBERS];
 	pthread_t customers[MAX_CUSTOMERS];
@@ -81,15 +79,4 @@ int main(){
     {
         pthread_join(customers[i],NULL);
     }
-
-    sem_destroy(&block);
-    sem_destroy(&mutex);
 }
-
-
-
-
-
-
-
-
