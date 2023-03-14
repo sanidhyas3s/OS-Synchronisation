@@ -1,4 +1,3 @@
-// #include <bits/stdc++.h>
 #include <queue>
 #include <pthread.h>
 
@@ -7,7 +6,6 @@ class Semaphore
     private:
         int value;
         std::queue<pthread_t> waiting;
-        // std::set<pthread_t> popped;
         pthread_t popped;
         bool waitcheck = true;
         bool releasecheck = true;
@@ -32,10 +30,10 @@ void Semaphore::wait()
     {
         waiting.push(pthread_self());
         waitcheck = true;
-        // while(this->popped.find(pthread_self())==this->popped.end());
         while(!pthread_equal(this->popped, pthread_self()));
     }
-    else{
+    else
+    {
         waitcheck = true;
     }
 }
@@ -47,7 +45,6 @@ void Semaphore::release()
     this->value++;
     if(!this->waiting.empty())
     {
-        // this->popped.insert(this->waiting.front());
         this->popped = this->waiting.front();
         this->waiting.pop();
     }
