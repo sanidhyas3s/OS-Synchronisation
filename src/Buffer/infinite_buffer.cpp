@@ -1,76 +1,77 @@
 #include <bits/stdc++.h>
 #include <pthread.h>
-#include <semaphore.h>
 #include <unistd.h>
-#include <fcntl.h>
 
-#define ITERATIONS 10
-#define BUFFER_SIZE 10
+#include "../semaphore.cpp"
 
-sem_t *check, *full, *print;
+#define ITERATIONS 20
 
-std::vector<int> buffer;
+Semaphore check = Semaphore(1);
+Semaphore full = Semaphore(0);
+Semaphore print = Semaphore(1);
+
+std:: vector<int> buffer;
 int in=0,out=0;
 
-void* Reader(void* args)
+void* Consumer(void* args)
 {
-    for(int i=0;i<ITERATIONS;i++){
-        sem_wait(print);
-        printf("Reader ready %d\n",i+1);
-        sem_post(print);
+    int identity = *(int*)args;
+    sleep(identity%4);
+    print.wait();
+    printf("Consumer ready %d\n",identity+1);
+    print.release();
 
-        sem_wait(full);
-        sem_wait(check);
+    full.wait();
+    check.wait();
+    
+    //------------ Data Read---------
+    printf("Consumer %d Thread: Value read from the memory %d at memory location %d\n",identity+1,buffer[out],out+1);
+    out++;
+    //-------------------------------
 
-        //------------ Data Read---------
-        printf("Value read from the memory %d at memory location %d\n",buffer[out],out+1);
-        out++;
-        //------------ Data Read---------
-
-        sem_post(check);
-    }
+    check.release();
 
     return NULL;
 }
 
-void* Writer(void* args)
+void* Producer(void* args)
 {
-    for(int i=0;i<ITERATIONS;i++){
-        sem_wait(print);
-        printf("Writer ready %d\n",i+1);
-        sem_post(print);
-        
-        sem_wait(check);
+    int identity = *(int*)args;
+    sleep(identity%4);
+    print.wait();
+    printf("Producer ready %d\n",identity+1);
+    print.release();
+    
+    check.wait();
 
-        sleep(1);
-        //------------ Data Written---------
-        buffer.push_back(rand()%100); 
-        printf("Value written to the memory %d at memory location %d\n",buffer[in],in+1); 
-        in++;
-        //----------- Data Written----------
+    sleep(1);
+    //------------ Data Written---------
+    buffer.push_back(rand()%100); 
+    printf("Producer %d Thread: Value written to the memory %d at memory location %d\n",identity+1,buffer[in],in+1); 
+    in++;
+    //----------------------------------
 
-        sem_post(check);
-        sem_post(full);
-    }
+    check.release();
+    full.release();
+
     return NULL;  
 }
 
 int main()
 {
-    check = sem_open("check",O_CREAT, S_IRUSR|S_IWUSR, 1);
-    full = sem_open("full",O_CREAT, S_IRUSR|S_IWUSR, 0);
-    print = sem_open("print",O_CREAT, S_IRUSR|S_IWUSR, 1);
+    pthread_t cons[ITERATIONS],prod[ITERATIONS];
+    for(int i=0;i<ITERATIONS;i++)
+    {
+        int* identity = (int*)malloc(sizeof(int));
+        *identity = i;
+        pthread_create(&cons[i],NULL,Consumer,identity);
+        pthread_create(&prod[i],NULL,Producer,identity);
+    }
+    for(int i=0;i<ITERATIONS;i++)
+    {
+        pthread_join(cons[i],NULL);
+        pthread_join(prod[i],NULL);
+    }
 
-    sem_unlink("check");
-    sem_unlink("full");
-    sem_unlink("print");
-
-    pthread_t read,write;
-
-    pthread_create(&write,NULL,Writer,NULL);
-    pthread_create(&read,NULL,Reader,NULL);
-    
-    pthread_join(read,NULL);
-    pthread_join(write,NULL);
     return 1;
 }
