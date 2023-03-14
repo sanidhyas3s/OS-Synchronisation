@@ -10,11 +10,14 @@ class Semaphore
         bool waitcheck = true;
         bool releasecheck = true;
     public:
+        Semaphore();
         Semaphore(int init);
         void wait();
         void release();
 
 };
+
+Semaphore::Semaphore(){}
 
 Semaphore::Semaphore(int init)
 {

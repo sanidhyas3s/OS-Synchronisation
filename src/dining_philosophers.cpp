@@ -1,60 +1,58 @@
-#include <semaphore.h>
-#include <pthread.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
 #include <bits/stdc++.h>
-#define NO_PHILOSPHERS 5
-/*   0 -> eating   1 -> hungry   2 -> thinking*/
+#include <pthread.h>
+#include <unistd.h>
+
+#include "semaphore.cpp"
+
 using namespace std;
+#define NO_PHPRS 5
+#define NO_TIMES_HUNGRY 2
 
-int philosopher_i[NO_PHILOSPHERS];
-int philosopher_state[NO_PHILOSPHERS]; 
-int time_duration;
+int ph_i[NO_PHPRS];
+int ph_state[NO_PHPRS]; //0 -> Eating   1 -> Hungry   2 -> Thinking
 
-sem_t waiting_fork[NO_PHILOSPHERS];
-/* 0-> waiting for fork    1-> not in waiting stage  */
-sem_t mutexo;
+Semaphore waiting_fork[NO_PHPRS];
+Semaphore mutex1 = Semaphore(1);
 
-void test_condition(int philosopher_number){
-    if(philosopher_state[philosopher_number]==1&& philosopher_state[(philosopher_number+1)%NO_PHILOSPHERS]!=0&&philosopher_state[(philosopher_number+NO_PHILOSPHERS-1)%NO_PHILOSPHERS]!=0){
-        philosopher_state[philosopher_number]=0;
+void test_condition(int p_no){
+    if(ph_state[p_no]==1&& ph_state[(p_no+1)%NO_PHPRS]!=0&&ph_state[(p_no+NO_PHPRS-1)%NO_PHPRS]!=0){
+        ph_state[p_no]=0;
+        //------Eating------
+        cout<<"\tPhilosopher "<<p_no+1<<" takes up fork number "<< (p_no)%NO_PHPRS+1<<" and "<<(p_no+1)%NO_PHPRS+1<<".\n";
+        cout<<"\tPhilosopher "<<p_no+1<<" is eating.\n";
         sleep(2);
-        cout<< "Philosopher "<< philosopher_number+1<<" takes up fork number "<< (philosopher_number)%NO_PHILOSPHERS+1<< " and "<<(philosopher_number+1)%NO_PHILOSPHERS+1<<"\n";
-        cout<< "The philosopher "<< philosopher_number+1<< " is eating\n";
-        sem_post(&waiting_fork[philosopher_number]);
+        //------------------
+        waiting_fork[p_no].release();
     }
 } 
 
-void if_hungry(int philosopher_number){
-     sem_wait(&mutexo);
-     philosopher_state[philosopher_number]=1;
-     cout<<"philospher "<< philosopher_number+1<< " is hungry\n";
-     test_condition(philosopher_number);
-     sem_post(&mutexo);
-     if(philosopher_state[philosopher_number]!= 0){
-        cout<<"philospher "<< philosopher_number+1<< " is waiting for fork\n";
-        sem_wait(&waiting_fork[philosopher_number]);
+void if_hungry(int p_no){
+     mutex1.release();
+     ph_state[p_no]=1;
+     cout<<"Philosopher "<<p_no+1<< " is hungry.\n";
+     test_condition(p_no);
+     mutex1.release();
+     if(ph_state[p_no]!= 0){
+        cout<<"Philosopher "<<p_no+1<< " is waiting for fork.\n";
+        waiting_fork[p_no].wait();
      }
      sleep(1);
 }
 
-void if_full(int philosopher_number){
-    sem_wait(&mutexo);
-    philosopher_state[philosopher_number]=2;
-    cout<< "Philosopher "<< philosopher_number+1<< " is putting down fork and is thinking\n";
-    test_condition((philosopher_number+NO_PHILOSPHERS-1)%NO_PHILOSPHERS);
-    test_condition((philosopher_number+1)%NO_PHILOSPHERS);
-    sem_post(&mutexo);
+void if_full(int p_no){
+    mutex1.release();
+    ph_state[p_no]=2;
+    cout<<"\t\tPhilosopher "<<p_no+1<< " is putting down fork and is thinking.\n";
+    test_condition((p_no+NO_PHPRS-1)%NO_PHPRS);
+    test_condition((p_no+1)%NO_PHPRS);
+    mutex1.release();
 }
 
 
 
-void* philosopher(void * philosopher_number){
-    while(1){
-        int i=*((int *) philosopher_number);
+void* philosopher(void * p_no){
+    for(int p=0;p<NO_TIMES_HUNGRY;p++){
+        int i=*((int *)p_no);
         sleep(1);
         if_hungry(i);
         sleep(0);
@@ -66,24 +64,21 @@ void* philosopher(void * philosopher_number){
 
 void initialize(){
      //name, option flag , permission flag, value
-    sem_init(&mutexo, 0, 1);
-    for(int i=0;i<NO_PHILOSPHERS;i++){
-      philosopher_i[i]=i;
-      sem_init(&waiting_fork[i],0,0);
-      philosopher_state[i]=2;
+    for(int i=0;i<NO_PHPRS;i++){
+      ph_i[i]=i;
+      waiting_fork[i] = Semaphore(0);
+      ph_state[i]=2;
     }
 }
 
 int main(){
     initialize();
-    pthread_t  tid[NO_PHILOSPHERS];
-    
-    for(int i=0;i<NO_PHILOSPHERS;i++){
-      pthread_create(&tid[i], NULL, philosopher, &philosopher_i[i]);
+    pthread_t  tid[NO_PHPRS];   
+    for(int i=0;i<NO_PHPRS;i++){
+      pthread_create(&tid[i], NULL, philosopher, &ph_i[i]);
     }
-    for(int i=0;i<NO_PHILOSPHERS;i++){
+    for(int i=0;i<NO_PHPRS;i++){
         pthread_join(tid[i], NULL); 
     }
-
     return 1;
 }
