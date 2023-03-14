@@ -9,3 +9,4 @@ Deadlock Free and Starve Free Synchronisation problems using pthreads and semaph
 - Cigarette Smokers Problem (multiple smokers) 
 - Roller Coaster Problem
 - Sushi Bar Problem
+- Dining Savages Problem
