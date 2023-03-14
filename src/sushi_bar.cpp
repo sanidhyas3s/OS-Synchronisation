@@ -13,18 +13,18 @@ Semaphore mutex1 = Semaphore(1);
 bool must_wait = false;
 
 void* sushi_bar(void* args){
-    int identity = *(int*)args;
+    int identity = (*(int*)args) + 1;
     (mutex).wait();
     sleep(1);
     if(must_wait){
         waiting++;
-        printf("\tWaiting customer...%d\n", *(int*)args+1);
+        printf("\tWaiting customer...%d\n", identity);
         mutex.release();
         block.wait();
         waiting--;
     }
     eating++;
-    printf("Eating customer...%d\n", *(int*)args+1);
+    printf("Eating customer...%d\n", identity);
     if(eating == 5){
         must_wait = true;
     }
@@ -39,7 +39,7 @@ void* sushi_bar(void* args){
 
     mutex1.wait();
     eating--;
-    printf("\t\tLeaving customer...%d\n", *(int*)args+1);
+    printf("\t\tLeaving customer...%d\n", identity);
     if(eating == 0){
         must_wait = false;
     }
