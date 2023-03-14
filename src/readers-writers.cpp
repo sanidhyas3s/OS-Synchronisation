@@ -13,7 +13,7 @@ Semaphore print = Semaphore(1);
 
 int rcount = 0;
 
-int* shared = (int*)malloc(sizeof(int));f
+int* shared = (int*)malloc(sizeof(int));
 
 void* Reader(void* args)
 {
