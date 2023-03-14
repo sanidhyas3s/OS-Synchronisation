@@ -23,7 +23,7 @@ void *Savage(void *arg)
     while(1)
     {
         pot_mutex.wait();
-        while (servings == 0)
+        while(servings == 0)
         {
             print.wait();
             printf("Savage %d is waiting for the pot to be refilled.\n", id);
@@ -69,17 +69,17 @@ void *Cook(void *arg)
             pot_full.wait();
         }
 
+        if (refill_count >= MAX_REFILLS)
+        {
+            print.wait();
+            printf("Cook denied refill as already they have exhausted all refills.");
+            print.release();
+            exit(0);
+        }
         print.wait();
         servings = SERVINGS;
         printf("Cook refilled the pot. Servings left: %d\n", servings);
-        printf("Cook signaled the savages that the pot is now full.\n");
         refill_count++;
-
-        if (refill_count > MAX_REFILLS)
-        {
-            exit(0);
-        }
-
         print.release();
 
         sleep(1);
