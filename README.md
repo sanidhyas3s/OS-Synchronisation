@@ -7,6 +7,5 @@ Deadlock Free and Starve Free Synchronisation problems using pthreads and semaph
 - Dining Philosophers Problem (multiple philosophers) 
 - Sleeping Barbers Problem (multiple barbers, multiple customers, single queue) 
 - Cigarette Smokers Problem (multiple smokers) 
-- Roller Coaster Problem
 - Sushi Bar Problem
 - Dining Savages Problem
