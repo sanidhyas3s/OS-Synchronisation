@@ -7,7 +7,7 @@ using namespace std;
 
 #define NO_OF_BARBERS 3
 #define NO_CHAIRS 3
-#define MAX_CUSTOMERS 20
+#define MAX_CUSTOMERS 10
 
 
 Semaphore barberReady = Semaphore(0);
@@ -55,7 +55,7 @@ void* barber(void* args){
         sleep(8); 	// cutting hair of customer
 
         IO.wait();        
-        cout<<"\tBarber "<<id<<" finished cutting hair of customer "<<cust_id<<"\n";
+        cout<<"\t\t\t\tBarber "<<id<<" finished cutting hair of customer "<<cust_id<<"\n";
         IO.release();	
     }
     return NULL;
@@ -64,28 +64,30 @@ void* barber(void* args){
 void* customer(void* args){
     int id = *(int*)args;
 
-    mutex1.wait();                       
-    sleep(rand()%5);
-    waitingseats.wait();           
-
-    if (freeseats > 0){
-        IO.wait();        
-        cout<<"Customer "<<id<<" entered waiting area\n";
-        IO.release();
-        q.push(id);    
-        freeseats--;                
-        ready.release();
-        waitingseats.release();
-        mutex1.release();
-        barberReady.wait();     
-    }
-    else{
-        IO.wait();    
-        cout<<"\t\tCustomer "<<id<<" left without haircut\n"; 
-        IO.release();
-        served_customers++;
-        waitingseats.release(); 
-        mutex1.release();  
+    while(1){
+        mutex1.wait();                       
+        sleep(rand()%4);
+        waitingseats.wait();           
+        if (freeseats > 0){
+            IO.wait();        
+            cout<<"Customer "<<id<<" entered waiting area\n";
+            IO.release();
+            q.push(id);    
+            freeseats--;                
+            ready.release();
+            waitingseats.release();
+            mutex1.release();
+            barberReady.wait(); 
+            return NULL;    
+        }
+        else{
+            IO.wait();    
+            cout<<"\t\tCustomer "<<id<<" left without haircut\n"; 
+            IO.release();
+            waitingseats.release(); 
+            mutex1.release();
+            sleep(rand()%5);  
+        }
     }
     return NULL;
 }
