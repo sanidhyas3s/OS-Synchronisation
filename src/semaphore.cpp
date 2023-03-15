@@ -14,7 +14,7 @@ class Semaphore
         Semaphore(int init);
         void wait();
         void release();
-
+        bool try_wait();
 };
 
 Semaphore::Semaphore(){}
@@ -39,6 +39,11 @@ void Semaphore::wait()
     {
         waitcheck = true;
     }
+}
+
+bool Semaphore::try_wait()
+{
+    return value>0;
 }
 
 void Semaphore::release()
