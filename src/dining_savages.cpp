@@ -1,12 +1,12 @@
 #include <bits/stdc++.h>
 #include <pthread.h>
 #include <unistd.h>
+
 #include "semaphore.cpp"
 
-#define MAX_SAVAGES 5
-#define SERVINGS 3
-#define ITERATIONS 10
-#define MAX_REFILLS 2
+#define MAX_SAVAGES 4
+#define SERVINGS 5
+#define MAX_REFILLS 3
 
 Semaphore pot_mutex = Semaphore(1);
 Semaphore pot_empty = Semaphore(0);
@@ -23,68 +23,53 @@ void *Savage(void *arg)
     while(1)
     {
         pot_mutex.wait();
-        while(servings == 0)
-        {
-            print.wait();
-            printf("Savage %d is waiting for the pot to be refilled.\n", id);
-            sleep(1);
-            print.release();
-            pot_mutex.release();
-            pot_empty.wait();
-        }
-
-        print.wait();
-        servings--;
-        printf("Savage %d took a serving from the pot. Servings left: %d\n", id, servings);
-        print.release();
-        sleep(1);
-
         if (servings == 0)
         {
             print.wait();
-            printf("Savage %d signaled the cook to refill the pot.\n", id);
+            printf("Savage %d is waiting for the pot to be refilled.\n", id);
             print.release();
-            sleep(1);
-            pot_full.release();
+            pot_empty.release();
+            pot_full.wait();
         }
 
+        if(servings>0)
+        {
+            servings--;
+            print.wait();
+            printf("Savage %d took a serving from the pot. Servings left: %d\n", id, servings);
+            print.release();
+        }
         pot_mutex.release();
-
-        sleep(10);
+        
     }
+    
 
     return NULL;
 }
 
 void *Cook(void *arg)
 {
-    while (1)
+    while(1)
     {
-        pot_mutex.wait();
-
-        while (servings > 0)
-        {
-            sleep(1);
-            pot_mutex.release();
-            pot_full.wait();
-        }
-
-        if (refill_count >= MAX_REFILLS)
+        pot_empty.wait();
+        if(refill_count>=MAX_REFILLS)
         {
             print.wait();
             printf("Cook denied refill as already they have exhausted all refills.");
-            print.release();
             exit(0);
         }
-        print.wait();
-        servings = SERVINGS;
-        printf("Cook refilled the pot. Servings left: %d\n", servings);
-        refill_count++;
-        print.release();
 
-        sleep(1);
-        pot_empty.release();
-        pot_mutex.release();
+        if(servings == 0)
+        {
+            servings = SERVINGS;
+            refill_count++;
+            print.wait();
+            printf("Cook refilled the pot. Servings left: %d\n", servings);
+            print.release();
+        }
+        pot_full.release();
+
+        
     }
 
     return NULL;
@@ -92,20 +77,19 @@ void *Cook(void *arg)
 
 int main()
 {
-    int i;
     pthread_t savages[MAX_SAVAGES];
     pthread_t cook_thread;
     int identity[MAX_SAVAGES];
 
     pthread_create(&cook_thread, NULL, Cook, NULL);
 
-    for (i = 0; i < MAX_SAVAGES; i++)
+    for (int i = 0; i < MAX_SAVAGES; i++)
     {
-        identity[i] = i+1;
+        identity[i] = i + 1;
         pthread_create(&savages[i], NULL, Savage, &identity[i]);
     }
 
-    for (i = 0; i < MAX_SAVAGES; i++)
+    for (int i = 0; i < MAX_SAVAGES; i++)
     {
         pthread_join(savages[i], NULL);
     }
