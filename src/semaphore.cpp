@@ -1,20 +1,22 @@
 #include <queue>
 #include <pthread.h>
+#include <atomic>
+
+using namespace std;
 
 class Semaphore
 {
     private:
+        volatile atomic_flag exclusion;
         int value;
         std::queue<pthread_t> waiting;
         pthread_t popped;
-        bool waitcheck = true;
-        bool releasecheck = true;
     public:
         Semaphore();
         Semaphore(int init);
         void wait();
-        void release();
         bool try_wait();
+        void release();
 };
 
 Semaphore::Semaphore(){}
@@ -26,35 +28,31 @@ Semaphore::Semaphore(int init)
 
 void Semaphore::wait()
 {
-    while(!waitcheck);
-    waitcheck = false;
+    while(atomic_flag_test_and_set(&(this->exclusion)));
     this->value--;
+    atomic_flag_clear(&(this->exclusion));
     if(this->value<0)
     {
         waiting.push(pthread_self());
-        waitcheck = true;
         while(!pthread_equal(this->popped, pthread_self()));
-    }
-    else
-    {
-        waitcheck = true;
+        this->popped = NULL;
+        atomic_flag_clear(&(this->exclusion));
     }
 }
 
 bool Semaphore::try_wait()
 {
-    return value>0;
+    return this->value>0;
 }
 
 void Semaphore::release()
 {
-    while(!releasecheck);
-    releasecheck = false;
+    while(atomic_flag_test_and_set(&(this->exclusion)));
     this->value++;
     if(!this->waiting.empty())
     {
         this->popped = this->waiting.front();
         this->waiting.pop();
     }
-    releasecheck = true;
+    else atomic_flag_clear(&(this->exclusion));
 }
