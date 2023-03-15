@@ -4,13 +4,13 @@
 
 #include "../semaphore.cpp"
 
-#define ITERATIONS 8
+#define ITERATIONS 7
 #define BUFFER_SIZE 4
 
 Semaphore check = Semaphore(1);
 Semaphore full = Semaphore(0);
 Semaphore print = Semaphore(1);
-Semaphore empty = Semaphore(BUFFER_SIZE);
+Semaphore empty1 = Semaphore(BUFFER_SIZE);
 
 int buffer[BUFFER_SIZE];
 int in=0,out=0;
@@ -18,7 +18,7 @@ int in=0,out=0;
 void* Consumer(void* args)
 {
     int identity = *(int*)args;
-    sleep(identity%3);
+    sleep(rand()%3);
     print.wait();
     printf("Consumer ready %d\n",identity+1);
     print.release();
@@ -27,12 +27,14 @@ void* Consumer(void* args)
     check.wait();
     
     //------------ Data Read---------
+    print.wait();
     printf("Consumer %d Thread: Value read from the memory %d at memory location %d\n",identity+1,buffer[out],out+1);
+    print.release();
     out=(out+1)%BUFFER_SIZE;
     //-------------------------------
 
     check.release();
-    empty.release();
+    empty1.release();
 
     return NULL;
 }
@@ -40,20 +42,22 @@ void* Consumer(void* args)
 void* Producer(void* args)
 {
     int identity = *(int*)args;
-    sleep(identity%3);
+    sleep(rand()%3);
     print.wait();
     printf("Producer ready %d\n",identity+1);
     print.release();
     
-    empty.wait();
+    empty1.wait();
     check.wait();
 
     sleep(1);
     //------------ Data Written---------
     buffer[in] = rand()%100; 
-    printf("Producer %d Thread: Value written to the memory %d at memory location %d\n",identity+1,buffer[in],in+1); 
+    print.wait();
+    printf("Producer %d Thread: Value written to the memory %d at memory location %d\n",identity+1,buffer[in],in+1);
+     print.release(); 
     in=(in+1)%BUFFER_SIZE;
-    //-------------------------------
+    //----------------------------------
 
     check.release();
     full.release();

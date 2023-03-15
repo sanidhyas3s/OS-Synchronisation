@@ -4,7 +4,7 @@
 
 #include "../semaphore.cpp"
 
-#define ITERATIONS 20
+#define ITERATIONS 7
 
 Semaphore check = Semaphore(1);
 Semaphore full = Semaphore(0);
