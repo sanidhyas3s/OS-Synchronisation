@@ -15,7 +15,7 @@ bool must_wait = false;
 void* sushi_bar(void* args){
     int identity = (*(int*)args) + 1;
     (mutex).wait();
-    sleep(1);
+    sleep(rand()%3);
     if(must_wait){
         waiting++;
         printf("\tWaiting customer...%d\n", identity);
@@ -35,7 +35,7 @@ void* sushi_bar(void* args){
         mutex.release();
     }
 
-    sleep(6); // Eating time
+    sleep(rand()%18); // Eating time
 
     mutex1.wait();
     eating--;
