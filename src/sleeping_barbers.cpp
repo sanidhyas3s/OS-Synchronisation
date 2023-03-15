@@ -24,39 +24,39 @@ queue<int>q;
 void* barber(void* args){
     int id = *(int*)args;
     while(1){ 
-        waitingseats.wait();
+		waitingseats.wait();
         if (freeseats == NO_CHAIRS){
             IO.wait();
-            cout<<"Barber "<<id+1<<" is going to sleep\n";
+            cout<<"Barber "<<id<<" is going to sleep\n";
             IO.release();
-            if (served_customers == MAX_CUSTOMERS){
-                waitingseats.release(); 
-                sleep(10);
-                exit(0);
-            }
+			if (served_customers == MAX_CUSTOMERS){
+				waitingseats.release(); 
+				sleep(10);
+				exit(0);
+			}
         }
         waitingseats.release(); 
 
         ready.wait();                  
         waitingseats.wait();    
-             
+		     
         freeseats++;      
         served_customers++;
         int cust_id = q.front();
         q.pop();        
 
         IO.wait();        
-        cout<<"\tBarber "<<id+1<<" is going to cut the hair of customer "<<cust_id+1<<"\n";
+        cout<<"\tBarber "<<id<<" is going to cut the hair of customer "<<cust_id<<"\n";
         IO.release();
 
         barberReady.release();        
         waitingseats.release(); 
  
-        sleep(8);   // cutting hair of customer
+        sleep(8); 	// cutting hair of customer
 
         IO.wait();        
-        cout<<"\t\t\t\tBarber "<<id+1<<" finished cutting hair of customer "<<cust_id+1<<"\n";
-        IO.release();   
+        cout<<"\t\t\t\tBarber "<<id<<" finished cutting hair of customer "<<cust_id<<"\n";
+        IO.release();	
     }
     return NULL;
 }
@@ -70,7 +70,7 @@ void* customer(void* args){
         waitingseats.wait();           
         if (freeseats > 0){
             IO.wait();        
-            cout<<"Customer "<<id+1<<" entered waiting area\n";
+            cout<<"Customer "<<id<<" entered waiting area\n";
             IO.release();
             q.push(id);    
             freeseats--;                
@@ -82,7 +82,7 @@ void* customer(void* args){
         }
         else{
             IO.wait();    
-            cout<<"\t\tCustomer "<<id+1<<" left without haircut\n"; 
+            cout<<"\t\tCustomer "<<id<<" left without haircut\n"; 
             IO.release();
             waitingseats.release(); 
             mutex1.release();
