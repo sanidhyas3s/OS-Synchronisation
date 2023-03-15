@@ -1,79 +1,96 @@
 #include <bits/stdc++.h> 
-#include "semaphore.cpp"
 #include <pthread.h>
 #include <unistd.h>
 
+#include "semaphore.cpp"
 using namespace std;
 
-#define MAX_CUSTOMERS 10
-#define NO_OF_BARBERS 3
-#define WAITING_CHAIRS 5
-#define MAX_ITERATIONS 10
+#define NO_OF_BARBERS 5
+#define NO_CHAIRS 5
+#define MAX_CUSTOMERS 15
 
-int waiting_customers = 0;
-Semaphore block = Semaphore(1);
+
+Semaphore barberReady = Semaphore(0);
 Semaphore mutex1 = Semaphore(1);
-Semaphore S = Semaphore(1);
-queue<int>customers;
-void* customer(void* args){
-	int identity = *(int*)args;
-	mutex1.wait();
-	sleep(1);
-	if (waiting_customers < WAITING_CHAIRS){
-		S.wait();
-		waiting_customers++;
-		customers.push(identity+1);		
-		printf("customer %d entered waiting area\n", identity+1);
-		S.release();
-		mutex1.release();
-				
-	} 
-	else{				
-		printf("customer %d left without hair cut\n", identity+1);
-		mutex1.release();
-		
-	}
-	return NULL;
-}
-bool barbers_state[NO_OF_BARBERS];
+Semaphore waitingseats = Semaphore(1);     
+Semaphore ready = Semaphore(0);         
+Semaphore IO= Semaphore(1);
+
+int freeseats = NO_CHAIRS;  
+int served_customers = 0;   
+
+queue<int>q;
+
 void* barber(void* args){
+    int id = *(int*)args;
+    while(1){ 
+		waitingseats.wait();
+        if (freeseats == NO_CHAIRS){
+            IO.wait();
+            cout<<"Barber "<<id<<" is going to sleep\n";
+            IO.release();
+			if (served_customers == MAX_CUSTOMERS){
+				waitingseats.release(); 
+				sleep(10);
+				exit(0);
+			}
+        }
+        waitingseats.release(); 
 
-	for (int i=0;i<MAX_ITERATIONS;i++){
-	int identity = *(int*)args;
-	block.wait();
-	sleep(1);
-	if (waiting_customers == 0){				
-		block.release();
-		if (!barbers_state[identity+1]){
-			barbers_state[identity+1] = 1;
-			printf("Barber %d going to sleep\n", identity+1);	
-		}
-		
-	}
-	else{		
-		S.wait();
-		waiting_customers--;
-		int customer_id = customers.front();
-		customers.pop();
-		S.release();
-		if (barbers_state[identity+1])
-			printf("Barber %d wake up from sleep\n", identity+1);
-		barbers_state[identity+1] = 0;		
-		
-		cout<<"Barber "<<identity+1<<" is going to cut the hairs of customer "<<customer_id<<'\n';
-		sleep(5);
-		cout<<"customer "<<customer_id<<" is leaving after his hair cut\n";
-		
-		block.release();
-				
-	}}
-	return NULL;
+        ready.wait();                  
+        waitingseats.wait();    
+		     
+        freeseats++;      
+        served_customers++;
+        int cust_id = q.front();
+        q.pop();        
+
+        IO.wait();        
+        cout<<"\tBarber "<<id<<" is going to cut the hair of customer "<<cust_id<<"\n";
+        IO.release();
+
+        barberReady.release();        
+        waitingseats.release(); 
+ 
+        sleep(5); 	// cutting hair of customer
+
+        IO.wait();        
+        cout<<"\tBarber "<<id<<" finished cutting hair of customer "<<cust_id<<"\n";
+        IO.release();	
+    }
+    return NULL;
 }
 
-int main(){
+void* customer(void* args){
+    int id = *(int*)args;
 
-	pthread_t barbers[NO_OF_BARBERS];
-	pthread_t customers[MAX_CUSTOMERS];
+    mutex1.wait();                       
+    sleep(rand()%4);
+    waitingseats.wait();           
+    if (freeseats > 0){
+        IO.wait();        
+        cout<<"Customer "<<id<<" entered waiting area\n";
+        IO.release();
+        q.push(id);    
+        freeseats--;                
+        ready.release();
+        waitingseats.release();
+        mutex1.release();
+        barberReady.wait();     
+    }
+    else{
+        IO.wait();    
+        cout<<"\t\tCustomer "<<id<<" left without haircut\n"; 
+        IO.release();
+        served_customers++;
+        waitingseats.release(); 
+        mutex1.release();  
+    }
+    return NULL;
+}
+
+int main(){    
+    pthread_t barbers[NO_OF_BARBERS], customers[MAX_CUSTOMERS];
     for(int i = 0; i < NO_OF_BARBERS; i++)
     {
         int* identity = (int*)malloc(sizeof(int));
@@ -86,13 +103,10 @@ int main(){
         *identity = i;
         pthread_create(&customers[i],NULL,customer,identity);
     }
-    for(int i = 0; i < NO_OF_BARBERS; i++)
-    {
-        pthread_join(barbers[i],NULL);
-    }
-    for(int i = 0; i < MAX_CUSTOMERS; i++)
-    {
-        pthread_join(customers[i],NULL);
-        sleep(rand()%2);
-    }
+    for (int i=0;i<NO_OF_BARBERS;i++)
+        pthread_join(barbers[i],NULL);      
+    for (int i=0;i<MAX_CUSTOMERS;i++){
+        pthread_join(customers[i],NULL);      
+        sleep(rand()%2+1);
+    }    
 }
