@@ -8,18 +8,18 @@
 
 int eating = 0, waiting = 0; 
 Semaphore block = Semaphore(0);
-Semaphore mutex = Semaphore(1);
+Semaphore mutex2 = Semaphore(1);
 Semaphore mutex1 = Semaphore(1);
 bool must_wait = false;
 
 void* sushi_bar(void* args){
     int identity = (*(int*)args) + 1;
-    (mutex).wait();
+    (mutex2).wait();
     sleep(rand()%3);
     if(must_wait){
         waiting++;
         printf("\tWaiting customer...%d\n", identity);
-        mutex.release();
+        mutex2.release();
         block.wait();
         waiting--;
     }
@@ -32,7 +32,7 @@ void* sushi_bar(void* args){
         block.release();
     }
     else{
-        mutex.release();
+        mutex2.release();
     }
 
     sleep(rand()%18); // Eating time
