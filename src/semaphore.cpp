@@ -19,7 +19,10 @@ class Semaphore
         void release();
 };
 
-Semaphore::Semaphore(){}
+Semaphore::Semaphore()
+{
+    this->value = 0;
+}
 
 Semaphore::Semaphore(int init)
 {
